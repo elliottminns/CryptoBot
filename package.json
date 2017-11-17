@@ -1,0 +1,23 @@
+{
+  "name": "cryptobot",
+  "version": "1.0.0",
+  "description": "A CryptoCurrency Trader",
+  "main": "index.js",
+  "author": "",
+  "scripts": {
+    "start": "NODE_PATH=src node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "bitfinex-api-node": "^1.2.1",
+    "colors": "^1.1.2",
+    "commander": "^2.11.0",
+    "gdax": "github:coinbase/gdax-node",
+    "kraken-api": "^1.0.0",
+    "mongoose": "^4.13.2",
+    "node-bitstamp": "^1.5.0",
+    "promise-tool": "^1.1.5",
+    "technicalindicators": "^1.0.21"
+  }
+}
