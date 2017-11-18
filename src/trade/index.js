@@ -16,7 +16,7 @@ class Trade {
     const fee = 0.0025
     const entrance = this.enter.price * (1 + fee)
     const exit = this.exit.price * (1 - fee)
-    return exit - entrance
+    return (exit - entrance).toFixed(2)
   }
 
   print() {

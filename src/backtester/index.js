@@ -1,5 +1,6 @@
 const Candlestick = require('candlestick')
 const StrategyFactory = require('strategies/factory')
+const Average = require('strategies/movingAverage')
 
 class Backtester {
   constructor({ start, end, period, interval, gdax, product, strategy }) {
@@ -15,6 +16,7 @@ class Backtester {
   }
 
   async start() {
+      try {
     const history = await this.client.getProductHistoricRates({
       granularity: this.interval,
       start: this.startTime,
@@ -33,20 +35,25 @@ class Backtester {
     this.strategy = StrategyFactory.create({
       type: this.strategyType,
       period: this.period,
-      ticks: [],
       onBuySignal: (price) => { this.onBuySignal(price) },
       onSellSignal: (price) => { this.onSellSignal(price) }
     })
 
-    this.candlesticks.forEach(async tick => {
+    const length = this.candlesticks.length
+    for (let i = 0; i < length; i++) {
+      const tick = this.candlesticks[i]
+      const ticks = this.candlesticks.slice(0, i + 1)
       this.currentTime = tick.startTime
-      await this.strategy.onTick({ tick, time: tick.startTime })
-    })
+      await this.strategy.run({ ticks, time: tick.startTime })
+    }
 
     const trades = this.strategy.trades
     trades.forEach(trade => {
       trade.print()
     })
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async onBuySignal(price) {

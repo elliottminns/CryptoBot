@@ -31,7 +31,8 @@ const main = async function() {
       interval: 300,
       period: program.period,
       isLive: program.live,
-      strategy: program.strategy
+      strategy: program.strategy,
+      amount: program.amount
     })
     await trader.start()
     break
@@ -57,13 +58,11 @@ const main = async function() {
     break
   case 'arbitrage':
     const live = program.live
-    const longExchange = program.longExchange
-    const shortExchange = program.shortExchange
     const amount = program.amount || 10
     const arbitrage = new Arbitrage({
       product: program.product,
       amount,
-      exchanges: [bitfinex, bitstamp]
+      exchanges: [bitfinex.load(), bitstamp.load()]
     })
     await arbitrage.start()
     break

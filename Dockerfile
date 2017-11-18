@@ -1,6 +1,6 @@
 FROM node:alpine
 
-RUN apk --update add git
+RUN apk --update add git python make g++
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app

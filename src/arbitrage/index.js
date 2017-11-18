@@ -17,8 +17,13 @@ class Arbitrage {
     this.accounts = {}
     this.positions = []
     this.pairs = this.createPairs()
-    this.max = undefined
-    this.min = undefined
+    this.spreadStats = this.pairs.reduce((d, e) => {
+      d[`${e.long}-${e.short}`] = {
+        min: undefined,
+        max: undefined
+      }
+      return d
+    }, {})
   }
 
   async start() {
@@ -38,28 +43,12 @@ class Arbitrage {
       }, {})
 
       console.log(this.accounts)
-/*
-      const history = await Promise.all(this.exchanges.map(ex => {
-        return ex.getProductHistoricRates({
-          interval: 300,
-          product: this.product
-        })
-      })).then(h => {
-        return h.reduce((d, tick, index) => {
-          const exchange = this.exchanges[index]
-          d[exchange.name] = tick
-          return d
-        }, {})
-      })
-
-      this.getAverageSpreads(history)
-*/
 
       this.loop()
       const delay = 3000
 
     } catch (error) {
-      //console.log(error)
+      console.log(error)
       await this.load()
     }
   }
@@ -168,23 +157,24 @@ class Arbitrage {
     const shortStr = `${exchanges.short.name}: ${shortPrice.toFixed(2)}`
 
     const spread = (100 - (longPrice / shortPrice * 100)).toFixed(2)
+    const spreadStats = this.spreadStats[`${exchanges.long.name}-${exchanges.short.name}`]
 
-    if (this.min === undefined) { this.min = spread }
-    if (this.max === undefined) { this.max = spread }
-    if (spread < this.min) {
-      this.min = spread
+    if (spreadStats.min === undefined) { spreadStats.min = spread }
+    if (spreadStats.max === undefined) { spreadStats.max = spread }
+
+    if (spread < spreadStats.min) {
+      spreadStats.min = spread
     }
-    if (spread > this.max) {
-      this.max = spread
+    if (spread > spreadStats.max) {
+      spreadStats.max = spread
     }
 
-    const spreadStr = `Spread: ${spread}% | Min: ${this.min} | Max: ${this.max}`
+    const spreadStr = `Spread: ${spread}% | Min: ${spreadStats.min} | Max: ${spreadStats.max}`
     const full = [`${new Date()}`, longStr, shortStr, spreadStr].join(' | ')
     console.log(full)
 
-    /*
     if (openPositions.length < this.numberActivePositions) {
-      if (spread >= 0.9) {
+      if (spread >= 1.0) {
         const product = this.product
         const amountLong = this.amount / longPrice
         const amountShort = this.amount / amountShort
@@ -214,7 +204,7 @@ class Arbitrage {
         this.positions.push(position)
       }
     } else {
-      if (spread < 0.0) {
+      if (spread < -0.5) {
         openPositions.forEach(async p => {
           if (p.exchanges.long.name !== exchanges.long.name &&
               p.exchanges.short.name !== exchanges.short.name) { return }
@@ -241,7 +231,7 @@ class Arbitrage {
           })
         })
       }
-    }*/
+    }
   }
 
   async currentPrices() {

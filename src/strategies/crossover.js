@@ -1,71 +1,53 @@
-const { SMA, CCI, ADX } = require('technicalindicators')
 const CCISignal = require('./cciSignal')
-const Trade = require('trade')
+const tulind = require('tulind')
+const Strategy = require('./strategy')
 
-class Crossover {
-  constructor({ period, ticks, onBuySignal, onSellSignal }) {
-    const prices = ticks.map(tick => tick.average())
-    this.period = period
-    this.smaShort = new SMA({ period, values: prices })
-    this.smaLong = new SMA({ period: period * 5, values: prices })
-    const open = ticks.map(tick => tick.open)
-    const high = ticks.map(tick => tick.high)
-    const low = ticks.map(tick => tick.low)
-    const close = ticks.map(tick => tick.close)
-    this.cci = new CCI({ open, high, low, close, period: period * 1 })
-    this.numberActiveTrades = 1
-    this.onBuySignal = onBuySignal
-    this.onSellSignal = onSellSignal
-    this.trades = []
-    this.signal = new CCISignal({ cci: this.cci })
-    this.adx = new ADX({ period, high, low, close })
+class Crossover extends Strategy {
+
+  constructor(data) {
+    super(data)
     this.previous = {
-      long: 0,
-      short: 0
     }
   }
 
-  async initialize() {
-    const smaL = await this.smaLong.getResult()
-    const smaS = await this.smaShort.getResult()
-    const oscil = await this.cci.getResult()
-    const adx = await this.adx.getResult()
-    this.previous.long = smaL[smaL.length - 1]
-    this.previous.short = smaL[smaL.length - 1]
-  }
+  async run({ ticks, time }) {
+    const sma = tulind.indicators.sma
+    const cci = tulind.indicators.cci
+    const adxI = tulind.indicators.adx
+    const high = ticks.map(t => t.high)
+    const low = ticks.map(t => t.low)
+    const close = ticks.map(t => t.close)
 
-  onTick({ tick, time }) {
-    const avgLng = this.smaLong.nextValue(tick.average())
-    const avgSrt = this.smaShort.nextValue(tick.average())
-    const oscilation = this.cci.nextValue({
-      close: tick.close, high: tick.high, low: tick.low
-    })
-    const adxResult = this.adx.nextValue({
-      close: tick.close, high: tick.high, low: tick.low
-    })
+    const longResults = await sma.indicator([close], [this.period]).then(d => d[0])
+    const shortResults = await sma.indicator([close], [this.period * 4]).then(d => d[0])
+    const cciResults = await cci.indicator([high, low, close], [this.period]).then(d => d[0])
+    const adxResults = await adxI.indicator([high, low, close], [this.period]).then(d => d[0])
+    const signal = new CCISignal({ cciResults })
+    const avgLng = longResults[longResults.length - 1]
+    const avgSrt = shortResults[shortResults.length - 1]
+    const adx = adxResults[adxResults.length - 1]
+    const oscilation = cciResults[cciResults.length - 1]
 
-    if (oscilation) {
-      this.cci.result.push(oscilation)
-    }
-
-    const price = tick.close
+    const price = ticks[ticks.length - 1].close
     const previousBelow = this.previous.short < this.previous.long
 
-    if (!avgLng || !avgSrt || !oscilation || !adxResult) { return }
+    if (!avgLng || !avgSrt || !oscilation || !adx) { return }
 
-    console.log(`Time: ${time}   Average ${tick.average().toFixed(2)}\
+    console.log(`Time: ${time}\
    Price: ${price.toFixed(2)}   Long: ${avgLng.toFixed(2)}\
    Short: ${avgSrt.toFixed(2)}  Osci: ${oscilation.toFixed(2)}\
-   ADX: ${adxResult.adx.toFixed(2)}`)
+   ADX: ${adx.toFixed(2)}`)
 
+    /*const last = ticks.slice(ticks.length - 4)
+    console.log(last)*/
     const openTrades = this.trades.filter(t => t.state === 'open' )
 
     try {
-      if (openTrades.length < this.numberActiveTrades) {
-        if (avgSrt > avgLng && ((previousBelow && oscilation < -100) || this.signal.shouldBuy() && adxResult.adx > 25 && adxResult.adx < 30)) {
+      if (openTrades.length < this.maxActiveTrades) {
+        if (avgSrt > avgLng && ((previousBelow && oscilation < -100) || signal.shouldBuy() && adx > 25 && adx < 30)) {
           this.onBuySignal(price)
         }
-      } else if (avgSrt < avgLng && ((!previousBelow && oscilation > 100) || this.signal.shouldSell() && adxResult.adx < 20)) {
+      } else if (avgSrt < avgLng && ((!previousBelow && oscilation > 100) || signal.shouldSell() && adx < 20)) {
         const open = openTrades[0]
         if (price - (price * 0.0025) > (open.enter.price * 1.0025)) {
           this.onSellSignal(price)
@@ -77,19 +59,6 @@ class Crossover {
 
     this.previous.short = avgSrt
     this.previous.long = avgLng
-  }
-
-  positionOpened({ price, time }) {
-    console.log('BUY ORDER')
-    this.trades.push(new Trade({ price, time }))
-  }
-
-  positionClosed({ price, time }) {
-    console.log('SELL ORDER')
-    const openTrades = this.trades.filter(t => t.state === 'open')
-    openTrades.forEach(t => {
-      t.close({ price, time })
-    })
   }
 }
 

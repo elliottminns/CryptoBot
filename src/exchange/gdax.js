@@ -36,7 +36,7 @@ module.exports = {
   },
 
   userFeed({ product, onUpdate, onError }) {
-    const socket = new Gdax.WebscoketClient(
+    const socket = new Gdax.WebsocketClient(
       [product],
       wsUrl,
       { key, secret, passphrase },
@@ -52,5 +52,7 @@ module.exports = {
     socket.on('close', () => {
       socket.open()
     })
+
+    return socket
   }
 }

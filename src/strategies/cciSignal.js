@@ -1,12 +1,12 @@
 class CCISignal {
-  constructor({ cci, upper = 100, lower = -100 }) {
-    this.cci = cci
+  constructor({ cciResults, upper = 100, lower = -100 }) {
+    this.cci = cciResults
     this.upper = upper
     this.lower = lower
   }
 
   shouldSell() {
-    const data = this.cci.getResult().reverse()
+    const data = this.cci.reverse()
     const threshold = this.upper
     if (data.length === 0) { return false }
 
@@ -39,7 +39,7 @@ class CCISignal {
   }
 
   shouldBuy() {
-    const data = this.cci.getResult().reverse()
+    const data = this.cci.reverse()
     const threshold = this.lower
     if (data.length === 0) { return false }
 
