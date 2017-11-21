@@ -35,6 +35,7 @@ class Trader {
         high: stick[2],
         open: stick[3],
         close: stick[4],
+        volume: stick[5],
         interval: this.interval
       })
     }).reverse()
@@ -78,10 +79,14 @@ class Trader {
     if (!this.currentCandle) {
       this.currentCandle = new Candlestick({
         price: parseFloat(data.price),
+        volume: parseFloat(data.volume),
         interval: this.interval
       })
     } else {
-      this.currentCandle.onPrice(parseFloat(data.price))
+      this.currentCandle.onPrice({
+        p: parseFloat(data.price),
+        v: parseFloat(data.volume)
+      })
     }
     const ticks = this.candlesticks.slice()
     ticks.push(this.currentCandle)

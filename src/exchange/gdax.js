@@ -47,10 +47,10 @@ module.exports = {
     })
     socket.on('error', err => {
       onError(err)
-      socket.open()
+      socket.connect()
     })
     socket.on('close', () => {
-      socket.open()
+      socket.connect()
     })
 
     return socket

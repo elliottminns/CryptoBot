@@ -29,7 +29,8 @@ class Backtester {
         high: stick[2],
         open: stick[3],
         close: stick[4],
-        interval: this.interval
+        interval: this.interval,
+        volume: stick[5]
       })
     }).reverse()
     this.strategy = StrategyFactory.create({
