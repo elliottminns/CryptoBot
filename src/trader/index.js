@@ -1,10 +1,14 @@
 const Candlestick = require('candlestick')
 const StrategyFactory = require('strategies/factory')
 const randomToken = require('random-token')
-const uuidv1 = require('uuid/v1');
+const uuidv1 = require('uuid/v1')
+const BotModel = require('models/bot')
 
 class Trader {
-  constructor({ product, gdax, amount = 0.01, interval, period = 30, isLive = false, strategy }) {
+  constructor({
+    product, gdax, amount = 0.01, interval,
+    period = 30, isLive = false, strategy, name }) {
+
     this.product = product
     this.exchange = gdax
     this.client = gdax.client
@@ -15,10 +19,21 @@ class Trader {
     this.isLive = isLive
     this.strategyType = strategy
     this.state = 'initializing'
+    this.name = name
     this.tokens = {}
   }
 
   async start() {
+    this.model = await BotModel.botWithData({
+      product: this.product,
+      interval: this.interval,
+      period: this.period,
+      amount: this.amount,
+      strategy: this.strategyType,
+      name: this.name,
+      isLive: this.isLive
+    })
+
     if (this.isLive) {
       console.log('Heads up, we are running live')
     }
@@ -50,6 +65,8 @@ class Trader {
       type: this.strategyType,
       period: this.period,
       ticks: this.candlesticks,
+      bot: this.model,
+      isLive: this.isLive,
       onBuySignal: (price) => { this.onBuySignal(price) },
       onSellSignal: (price) => { this.onSellSignal(price) }
     })
@@ -75,33 +92,33 @@ class Trader {
 
   async onTick(data) {
     try {
-    console.log(`Time: ${new Date}    Price: ${data.price}`)
-    if (!this.currentCandle) {
-      this.currentCandle = new Candlestick({
-        price: parseFloat(data.price),
-        volume: parseFloat(data.volume),
-        interval: this.interval
+      console.log(`Time: ${new Date}    Price: ${data.price}`)
+      if (!this.currentCandle) {
+        this.currentCandle = new Candlestick({
+          price: parseFloat(data.price),
+          volume: parseFloat(data.volume),
+          interval: this.interval
+        })
+      } else {
+        this.currentCandle.onPrice({
+          p: parseFloat(data.price),
+          v: parseFloat(data.volume)
+        })
+      }
+      const ticks = this.candlesticks.slice()
+      ticks.push(this.currentCandle)
+      await this.strategy.run({
+        ticks: ticks,
+        time: new Date()
       })
-    } else {
-      this.currentCandle.onPrice({
-        p: parseFloat(data.price),
-        v: parseFloat(data.volume)
-      })
-    }
-    const ticks = this.candlesticks.slice()
-    ticks.push(this.currentCandle)
-    await this.strategy.run({
-      ticks: ticks,
-      time: new Date()
-    })
 
-    this.strategy.trades.forEach(t => t.print())
+      this.strategy.trades.forEach(t => t.print())
 
-    if (this.currentCandle.state === 'closed') {
-      const candle = this.currentCandle
-      this.currentCandle = null
-      this.candlesticks.push(candle)
-    }
+      if (this.currentCandle.state === 'closed') {
+        const candle = this.currentCandle
+        this.currentCandle = null
+        this.candlesticks.push(candle)
+      }
     } catch (err) {
       console.log(err)
     }
@@ -127,11 +144,14 @@ class Trader {
       const time = new Date(data['time'])
 
       if (this.orders[side][orderId]) {
+        const data = {
+          price, time, order: orderId, amount: this.amount
+        }
         if (side === 'sell') {
-          this.strategy.positionClosed({ price, time })
+          this.strategy.positionClosed(data)
           this.selling = false
         } else {
-          this.strategy.positionOpened({ price, time })
+          this.strategy.positionOpened(data)
           this.buying = false
         }
       }
@@ -164,7 +184,9 @@ class Trader {
           throw new Error(order.message)
         }
       } else {
-        this.strategy.positionOpened({ price, time: new Date() })
+        this.strategy.positionOpened({
+          price, time: new Date(), amount: this.amount
+        })
         this.buying = false
       }
     } catch (error) {
@@ -191,7 +213,9 @@ class Trader {
           throw new Error(order.message)
         }
       } else {
-        this.strategy.positionClosed({ price, time: new Date() })
+        this.strategy.positionClosed({
+          price, time: new Date(), amount: this.amount
+        })
         this.selling = false
       }
     } catch (error) {

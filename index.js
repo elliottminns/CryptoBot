@@ -20,11 +20,14 @@ program.version('0.1.0')
   .option('-P, --period <n>', 'The period to use', parseInt)
   .option('-h, --hours <n>', 'The number of hours in the past', parseInt, 0)
   .option('-d, --days <n>', 'The number of days in the past', parseInt, 0)
+  .option('-n, --name [name]', 'The name of the bot', undefined)
   .parse(process.argv)
 
 const main = async function() {
   switch (program.type) {
   case 'trade':
+      if (!program.name) { throw new Error('Bot needs a name') }
+      await database.connect()
       const trader = new Trader({
       gdax,
       product: program.product,
@@ -32,7 +35,8 @@ const main = async function() {
       period: program.period,
       isLive: program.live,
       strategy: program.strategy,
-      amount: program.amount
+      amount: program.amount,
+      name: program.name
     })
     await trader.start()
     break

@@ -44,10 +44,14 @@ class Crossover extends Strategy {
 
     try {
       if (openTrades.length < this.maxActiveTrades) {
-        if (avgSrt > avgLng && ((previousBelow && oscilation < -100) || signal.shouldBuy() && adx > 25 && adx < 30)) {
+        if (avgSrt > avgLng &&
+           ((previousBelow && oscilation < -100 && oscilation > -200)
+            || signal.shouldBuy() && adx > 25 && adx < 30)) {
           this.onBuySignal(price)
         }
-      } else if (avgSrt < avgLng && ((!previousBelow && oscilation > 100) || signal.shouldSell() && adx < 20)) {
+      } else if (avgSrt < avgLng &&
+                 ((!previousBelow && oscilation > 100 && oscilation < 200) ||
+                  signal.shouldSell() && adx < 20)) {
         const open = openTrades[0]
         if (price - (price * 0.0025) > (open.enter.price * 1.0025)) {
           this.onSellSignal(price)

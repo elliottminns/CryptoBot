@@ -11,7 +11,7 @@ class CCISignal {
     if (data.length === 0) { return false }
 
     const first = data[0]
-    if (first < threshold) { return false }
+    if (first < threshold || first > threshold * 2) { return false }
     var crossed = false
     const crossedIndex = data.reduce((res, val, index) => {
       if (crossed) { return res }
@@ -44,8 +44,7 @@ class CCISignal {
     if (data.length === 0) { return false }
 
     const first = data[0]
-    if (first > threshold) { return false }
-
+    if (first > threshold || first < threshold * 2) { return false }
     var crossed = false
 
     const crossedIndex = data.reduce((res, val, index) => {

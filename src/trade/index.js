@@ -1,15 +1,19 @@
 const colors = require('colors/safe')
 
 class Trade {
-  constructor({ price, time }) {
+  constructor({ price, time, model, amount }) {
     this.state = 'open'
-    this.enter = { price, time }
+    this.enter = { price, time, amount }
     this.exit = null
+    this.model = model
+    this.amount = amount
   }
 
-  close({ price, time }) {
+  close({ price, time, amount, model }) {
     this.exit = { price, time }
     this.state = 'closed'
+    this.amount = amount
+    this.model = model
   }
 
   profit() {
