@@ -40,7 +40,6 @@ class Volume extends Strategy {
 
     if (!obvL || !bbL || !rsiL || !macdL || !signal || !hist) { return }
     console.log(`Time: ${time}   Price: ${price.toFixed(2)}\
-  Volume: ${vol.toFixed(2)}\
   Low: ${bbL.toFixed(2)}    Mid: ${bbM.toFixed(2)}\
   High: ${bbH.toFixed(2)}   RSI: ${rsiL.toFixed(2)}\
   Signal: ${signal}`)
